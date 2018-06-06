@@ -139,6 +139,7 @@
 #define IDS_CANTEJECTMEDIA        158
 #define IDS_CANTSHOWPROPERTIES    159
 #define IDS_CANTDISCONNECT        160
+#define IDS_SEND_TO               161
 
 /* Friendly File Type Names */
 #define IDS_DIRECTORY             200
@@ -787,3 +788,4 @@
 #define IDR_REBARBANDSITE       154
 #define IDR_USERNOTIFICATION    155
 #define IDR_SHELL               156
+#define IDR_SENDTOMENU          157

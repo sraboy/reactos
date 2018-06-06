@@ -833,6 +833,9 @@ BEGIN
     IDS_OPEN_WITH_RECOMMENDED "Doporučené programy:"
     IDS_OPEN_WITH_OTHER "Ostatní programy:"
 
+    /* Send To */
+    IDS_SEND_TO "Send To"
+
     IDS_SHELL_ABOUT_AUTHORS "&Autoři"
     IDS_SHELL_ABOUT_BACK "< &Zpět"
     FCIDM_SHVIEW_NEW "&Nový"

@@ -70,6 +70,7 @@ list(APPEND SOURCE
     CUserNotification.cpp
     CDefaultContextMenu.cpp
     COpenWithMenu.cpp
+    CSendToMenu.cpp
     CNewMenu.cpp
     CShellDispatch.cpp
     CFolder.cpp

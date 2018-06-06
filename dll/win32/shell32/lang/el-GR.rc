@@ -827,6 +827,9 @@ BEGIN
     IDS_OPEN_WITH_RECOMMENDED "Recommended Programs:"
     IDS_OPEN_WITH_OTHER "Other Programs:"
 
+    /* Send To */
+    IDS_SEND_TO "Send To"
+
     IDS_SHELL_ABOUT_AUTHORS "&Προγραμματιστές"
     IDS_SHELL_ABOUT_BACK "< &Επιστροφή"
     FCIDM_SHVIEW_NEW "Δημιουργία"
