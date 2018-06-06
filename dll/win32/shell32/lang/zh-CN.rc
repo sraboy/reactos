@@ -837,6 +837,9 @@ BEGIN
     IDS_OPEN_WITH_RECOMMENDED "推荐的程序："
     IDS_OPEN_WITH_OTHER "其他程序："
 
+    /* Send To */
+    IDS_SEND_TO "Send To"
+
     IDS_SHELL_ABOUT_AUTHORS "作者(&A)"
     IDS_SHELL_ABOUT_BACK "< 返回(&B)"
     FCIDM_SHVIEW_NEW "新建"

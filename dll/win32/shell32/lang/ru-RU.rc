@@ -829,6 +829,9 @@ BEGIN
     IDS_OPEN_WITH_RECOMMENDED "Рекомендуемые программы:"
     IDS_OPEN_WITH_OTHER "Другие программы:"
 
+    /* Send To */
+    IDS_SEND_TO "Send To"
+
     IDS_SHELL_ABOUT_AUTHORS "&Авторы"
     IDS_SHELL_ABOUT_BACK "< &Назад"
     FCIDM_SHVIEW_NEW "Создать"

@@ -76,6 +76,7 @@
 #include "droptargets/CexeDropHandler.h"
 #include "droptargets/CFSDropTarget.h"
 #include "COpenWithMenu.h"
+#include "CSendToMenu.h"
 #include "CNewMenu.h"
 #include "dialogs/filedefext.h"
 #include "dialogs/drvdefext.h"
