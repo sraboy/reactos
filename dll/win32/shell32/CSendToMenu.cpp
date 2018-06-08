@@ -124,7 +124,7 @@ HRESULT WINAPI CSendToMenu::QueryContextMenu(
     DbgPrint("hMenu %p indexMenu %u idFirst %u idLast %u uFlags %u\n", hMenu, indexMenu, idCmdFirst, idCmdLast, uFlags);
 
     WCHAR wszName[100];
-    if (!LoadStringW(shell32_hInstance, IDS_SEND_TO, wszName, _countof(wszName)))
+    if (!LoadStringW(shell32_hInstance, IDS_SENDTO_MENU, wszName, _countof(wszName)))
     {
         ERR("Failed to load string\n");
         return E_FAIL;

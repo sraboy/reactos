@@ -825,7 +825,7 @@ BEGIN
     IDS_OPEN_WITH_OTHER "他のプログラム:"
 
     /* Send To */
-    IDS_SEND_TO "Send To"
+    IDS_SENDTO_MENU "Send To"
 
     IDS_SHELL_ABOUT_AUTHORS "制作者(&A)"
     IDS_SHELL_ABOUT_BACK "< 戻る(&B)"
