@@ -836,7 +836,7 @@ BEGIN
     IDS_OPEN_WITH_OTHER "Muud programmid:"
 
     /* Send To */
-    IDS_SEND_TO "Send To"
+    IDS_SENDTO_MENU "Send To"
 
     IDS_SHELL_ABOUT_AUTHORS "&Autorid"
     IDS_SHELL_ABOUT_BACK "< &Tagasi"

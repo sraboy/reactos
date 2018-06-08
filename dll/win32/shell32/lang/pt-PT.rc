@@ -828,7 +828,7 @@ BEGIN
     IDS_OPEN_WITH_OTHER "Other Programs:"
 
     /* Send To */
-    IDS_SEND_TO "Send To"
+    IDS_SENDTO_MENU "Send To"
 
     IDS_SHELL_ABOUT_AUTHORS "&Autores"
     IDS_SHELL_ABOUT_BACK "< &Trás"

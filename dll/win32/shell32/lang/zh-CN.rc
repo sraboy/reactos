@@ -838,7 +838,7 @@ BEGIN
     IDS_OPEN_WITH_OTHER "其他程序："
 
     /* Send To */
-    IDS_SEND_TO "Send To"
+    IDS_SENDTO_MENU "Send To"
 
     IDS_SHELL_ABOUT_AUTHORS "作者(&A)"
     IDS_SHELL_ABOUT_BACK "< 返回(&B)"

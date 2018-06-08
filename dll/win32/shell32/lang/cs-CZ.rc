@@ -834,7 +834,7 @@ BEGIN
     IDS_OPEN_WITH_OTHER "Ostatní programy:"
 
     /* Send To */
-    IDS_SEND_TO "Send To"
+    IDS_SENDTO_MENU "Send To"
 
     IDS_SHELL_ABOUT_AUTHORS "&Autoři"
     IDS_SHELL_ABOUT_BACK "< &Zpět"
