@@ -300,39 +300,37 @@ HRESULT CSendToMenu::CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWST
     return hres; 
 }
 
+// CLSID CLSID_ZipFolder = { 0x888DCA60, 0xFC0A, 0x11CF, { 0x8F, 0x0F, 0x00, 0xC0, 0x4F, 0xD7, 0xD0, 0x62 } };
+
+// #ifdef __cplusplus
+// #   define IID_PPV_ARG(Itype, ppType) IID_##Itype, reinterpret_cast<void**>((static_cast<Itype**>(ppType)))
+// #   define IID_NULL_PPV_ARG(Itype, ppType) IID_##Itype, NULL, reinterpret_cast<void**>((static_cast<Itype**>(ppType)))
+// #else
+// #   define IID_PPV_ARG(Itype, ppType) IID_##Itype, (void**)(ppType)
+// #   define IID_NULL_PPV_ARG(Itype, ppType) IID_##Itype, NULL, (void**)(ppType)
+// #endif
+
 HRESULT WINAPI CSendToMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 {
     DbgPrint("This %p idFirst %u idLast %u idCmd %u\n", this, m_idCmdFirst, m_idCmdLast, m_idCmdFirst + LOWORD(lpici->lpVerb));
-    
-
-    // LPCSTR spath = "C:\\Documents and Settings\\Administrator\\Desktop\\linky.lnk";
-    // LPCWSTR comment = L"no comment";
-    // return CreateLink(path, spath, comment);
-
-    if (!m_pdtobj)
-    {
-        ERR("m_pdtobj is NULL\n");
-        return E_INVALIDARG;
-    }
-
-    HRESULT hr;
-    DbgPrint("Got m_pdtobj\n");
-    hr = S_OK;
+    IDataObject *pdtobj = NULL;
     LPITEMIDLIST pidlItem = NULL;
-    IDropTarget *pdrop;
     
-    hr = SHGetUIObjectFromFullPIDL(pidlItem, lpici->hwnd, IID_IDropTarget, (LPVOID*)&pdrop);
-    //hr = psf->GetUIObjectOf(lpici->hwnd, 1, (LPCITEMIDLIST *)&pidlItem, IID_IDropTarget, 0, (void**)&pdrop);
+    HRESULT hr = SHILCreateFromPathW(m_wszPath, &pidlItem, NULL);
     if (FAILED(hr))
     {
-        ERR("SHGetUIObjectFromFullPIDL failed\n");
-        hr = E_FAIL;
+        ERR("SHILCreateFromPathW failed\n");
+        return E_FAIL;
     }
-    else
+    
+    
+    hr = SHGetUIObjectFromFullPIDL(pidlItem, lpici->hwnd, IID_IDataObject, (LPVOID*)&pdtobj);
+    
+    CComPtr<IDropTarget> pdt;
+    
+    if (SUCCEEDED(hr))
     {
-        DbgPrint("SHGetUIObjectFromFullPIDL success\n");
         DWORD grfKeyState;
-
         if (GetAsyncKeyState(VK_SHIFT) < 0)         // move
             grfKeyState = MK_SHIFT | MK_LBUTTON;
         else if (GetAsyncKeyState(VK_CONTROL) < 0)  // copy
@@ -342,21 +340,52 @@ HRESULT WINAPI CSendToMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
         else
             grfKeyState = MK_LBUTTON;
 
-        DbgPrint("call simdrop\n");
-        hr = SHSimulateDrop(pdrop, m_pdtobj, grfKeyState, NULL, NULL);
-        DbgPrint("done simdrop\n");
-        if (hr == S_FALSE) 
+        DWORD dwEffect = DROPEFFECT_COPY;
+        POINTL pt = { 0, 0 };
+        DbgPrint("HACK: Sending to recycler\n");
+        CRecyclerDropTarget_CreateInstance(IID_PPV_ARG(IDropTarget, &pdt));
+        hr = SHSimulateDrop(pdt, pdtobj, grfKeyState, &pt, &dwEffect);
+        if (FAILED(hr)) 
         {
             // FIXME: Use ShellMessageBoxW
             ERR("SHSimulateDrop failed\n");
-            hr == E_FAIL;
+            hr = E_FAIL;
         }
-            
-        pdrop->Release();
-        ILFree(pidlItem);
+        pdt->Release();
     }
-        
+    else
+    {
+        ERR("SHGetUIObjectFromFullPIDL failed\n");
+    }
+    pdtobj->Release();
+    ILFree(pidlItem);
     return hr;
+    // //hr = psf->GetUIObjectOf(lpici->hwnd, 1, (LPCITEMIDLIST *)&pidlItem, IID_IDropTarget, 0, (void**)&pdrop);
+    // if (FAILED(hr))
+    // {
+    //     ERR("SHGetUIObjectFromFullPIDL failed\n");
+    //     return E_FAIL;
+    // }
+
+    // DbgPrint("SHGetUIObjectFromFullPIDL success\n");
+    // DWORD grfKeyState;
+
+
+
+    // DbgPrint("call simdrop\n");
+    // hr = SHSimulateDrop(pdrop, m_pdtobj, grfKeyState, NULL, NULL);
+    // DbgPrint("done simdrop\n");
+    // if (hr == S_FALSE) 
+    // {
+    //     // FIXME: Use ShellMessageBoxW
+    //     ERR("SHSimulateDrop failed\n");
+    //     hr = E_FAIL;
+    // }
+        
+    // pdrop->Release();
+    // ILFree(pidlItem);
+    
+    // return hr;
 }
 
 HRESULT WINAPI
@@ -406,23 +435,28 @@ CSendToMenu::Initialize(LPCITEMIDLIST pidlFolder,
     if (hDrop == NULL) return E_INVALIDARG;
 
     unsigned int count = DragQueryFile(hDrop, (unsigned int)-1, nullptr, 0);
-    if (count == 0) return S_OK;
+    if (count == 0) 
+    {
+        GlobalUnlock(stm.hGlobal);
+        GlobalFree(stm.hGlobal);
+        return S_OK;
+    }
 
     // Get all selected files' names
     //WCHAR path[MAX_PATH]; //TODO: Handle longer paths in Win10 v1607+
     for (unsigned int i = 0; i < count; i++) 
     {
         // Skip if there's an error
-        if (!DragQueryFile(hDrop, i, path, MAX_PATH))
+        if (!DragQueryFile(hDrop, i, m_wszPath, MAX_PATH))
         {
             ERR("DragQueryFile() failed! Last error: 0x%08x\n", GetLastError());
             continue;
         }
         
-        DbgPrint("Path: %S\n", path);
-        DWORD attrs = GetFileAttributes(path);
-        DbgPrint("HACK: Set IDataObject\n");
-        m_pdtobj = pdtobj;
+        DbgPrint("Path: %S\n", m_wszPath);
+        DWORD attrs = GetFileAttributes(m_wszPath);
+        //DbgPrint("HACK: Set IDataObject\n");
+        //m_pdtobj = pdtobj;
         // Skip if there's an error
         if (attrs == INVALID_FILE_ATTRIBUTES)
         {
@@ -448,17 +482,20 @@ HRESULT SHGetUIObjectFromFullPIDL(LPCITEMIDLIST pidl, HWND hwnd, REFIID riid, vo
     IShellFolder* psf;
     *ppv = NULL;
     HRESULT hr = SHBindToParent(pidl, IID_IShellFolder, (LPVOID*)&psf, &pidlChild);
-    DbgPrint("here\n");
-    if (SUCCEEDED(hr))
+    if(FAILED(hr))
     {
-        DbgPrint("here\n");
-        hr = psf->GetUIObjectOf(hwnd, 1, &pidlChild, riid, NULL, ppv);
-        if(FAILED(hr))
-        {
-            ERR("GetUIObjectOf failed with: 0x%08x\n", hr);
-        }
-        psf->Release();
+        ERR("SHBindToParent failed with: 0x%08x\n", hr);
+        return hr;
     }
-    DbgPrint("Leave SHGetUIObjectFromFullPIDL\n");
+        
+    hr = psf->GetUIObjectOf(hwnd, 1, &pidlChild, riid, NULL, ppv);
+    if(FAILED(hr))
+    {
+        ERR("GetUIObjectOf failed with: 0x%08x\n", hr);
+        return hr;
+    }
+    psf->Release();
+    
+    DbgPrint("Success: SHGetUIObjectFromFullPIDL\n");
     return hr;
 }
