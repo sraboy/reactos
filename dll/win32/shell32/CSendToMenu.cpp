@@ -23,12 +23,109 @@ WINE_DEFAULT_DEBUG_CHANNEL(shell);
 
 HRESULT SHGetUIObjectFromFullPIDL(LPCITEMIDLIST pidl, HWND hwnd, REFIID riid, void **ppv);
 
-
-
-CSendToMenu::CSendToMenu()
+class CSendToList
 {
-    m_idCmdFirst = 0;
-    m_idCmdLast = 0;
+    public:
+        struct SSendTgt
+        {
+            WCHAR wszFilename[MAX_PATH];
+            GUID clsid;
+            //WCHAR wszCmd[MAX_PATH];
+            //WCHAR wszManufacturer[256];
+            //WCHAR wszName[256];
+            //BOOL bHidden;
+            //BOOL bRecommended;
+            //BOOL bMRUList;
+            HICON hIcon;
+        };
+
+        CSendToList();
+        ~CSendToList();
+
+        BOOL Load();
+        //SSendTgt *Add(LPCWSTR pwszPath);
+        //static BOOL SaveApp(SSendTgt *pApp);
+        //SSendTgt *Find(LPCWSTR pwszFilename);
+        //static LPCWSTR GetName(SSendTgt *pApp);
+        //static HICON GetIcon(SSendTgt *pApp);
+        //BOOL LoadRecommended(LPCWSTR pwszFilePath);
+        
+        inline SSendTgt *GetList() { return m_pApp; }
+        inline UINT GetCount() { return m_cApp; }
+        //inline UINT GetRecommendedCount() { return m_cRecommended; }
+
+    private:
+        typedef struct _LANGANDCODEPAGE
+        {
+            WORD lang;
+            WORD code;
+        } LANGANDCODEPAGE, *LPLANGANDCODEPAGE;
+
+        SSendTgt *m_pApp;
+        UINT m_cApp;//, m_cRecommended;
+        //BOOL m_bNoOpen;
+
+        // SSendTgt *AddInternal(LPCWSTR pwszFilename);
+        // static BOOL LoadInfo(SSendTgt *pApp);
+        // static VOID GetPathFromCmd(LPWSTR pwszAppPath, LPCWSTR pwszCmd);
+        // BOOL LoadProgIdList(HKEY hKey, LPCWSTR pwszExt);
+        // static HANDLE OpenMRUList(HKEY hKey);
+        // BOOL LoadMRUList(HKEY hKey);
+        // BOOL LoadAppList(HKEY hKey);
+        // VOID LoadFromProgIdKey(HKEY hKey, LPCWSTR pwszExt);
+        // VOID LoadRecommendedFromHKCR(LPCWSTR pwszExt);
+        // VOID LoadRecommendedFromHKCU(LPCWSTR pwszExt);
+        // static BOOL AddAppToMRUList(SSendTgt *pApp, LPCWSTR pwszFilename);
+
+        // inline VOID SetRecommended(SSendTgt *pApp)
+        // {
+            // if (!pApp->bRecommended)
+                // ++m_cRecommended;
+            // pApp->bRecommended = TRUE;
+        // }
+};
+
+CSendToList::CSendToList() {}
+CSendToList::~CSendToList() {}
+
+BOOL CSendToList::Load()
+{
+    WIN32_FIND_DATA data;
+    WCHAR send_to_path[MAX_PATH];
+
+    if (FAILED(SHGetFolderPathW(NULL, CSIDL_SENDTO, NULL, 0, send_to_path)))
+    {
+        ERR("SHGetFolderPathW failed\n");
+        return FALSE;
+    }
+
+    if(FAILED(StringCchCatW(send_to_path, MAX_PATH, L"\\*")))
+    {
+        ERR("StringCchCatW failed\n");
+        return FALSE;
+    }
+
+    DbgPrint("Got SendTo path: %S\n", send_to_path);
+    HANDLE hFind = FindFirstFileW((LPCWSTR)&send_to_path, &data);
+
+    BOOL found = FALSE;
+    if ( hFind != INVALID_HANDLE_VALUE ) {
+        do {
+            if(!_tcscmp(data.cFileName, _T(".")) || !_tcscmp(data.cFileName, _T("..")))
+            {
+                continue;
+            }
+            found = true;
+            DbgPrint("found file: %S\n", data.cFileName);
+        } while (FindNextFile(hFind, &data));
+        FindClose(hFind);
+    }
+    return found;
+}
+
+CSendToMenu::CSendToMenu() :
+m_idCmdFirst(0), m_idCmdLast(0), m_pdtobj(NULL), m_tgtList(NULL)
+{
 }
 
 CSendToMenu::~CSendToMenu()
@@ -59,6 +156,10 @@ CSendToMenu::~CSendToMenu()
             }
         }
     }
+
+    if (m_tgtList) {
+        delete m_tgtList;
+    }
 }
 
 VOID CSendToMenu::AddSendToItem(LPCWSTR pwszName)
@@ -67,12 +168,13 @@ VOID CSendToMenu::AddSendToItem(LPCWSTR pwszName)
 
     ZeroMemory(&mii, sizeof(mii));
     mii.cbSize = sizeof(mii);
-    mii.fMask = MIIM_ID | MIIM_TYPE | MIIM_STATE; // | MIIM_DATA;
+    mii.fMask = MIIM_ID | MIIM_TYPE | MIIM_STATE;// | MIIM_DATA;
     mii.fType = MFT_STRING;
     mii.fState = MFS_ENABLED;
     mii.wID = m_idCmdLast;
     mii.dwTypeData = (LPWSTR)pwszName;
     mii.cch = wcslen(mii.dwTypeData);
+    //mii.dwItemData = ***;
 
     // FIXME: Icon doesn't show on context menu, though nothing fails here
     // mii.dwItemData = 
@@ -134,9 +236,12 @@ HRESULT WINAPI CSendToMenu::QueryContextMenu(
     
     /* Init first cmd id and submenu */
     m_idCmdFirst = m_idCmdLast = idCmdFirst;
-    LPCWSTR deskstr = L"Desktop (create shortcut)";
+
     m_hSubMenu = CreatePopupMenu();
+    LPCWSTR deskstr = L"Desktop (create shortcut)";
     AddSendToItem(deskstr);
+    LPCWSTR zipstr = L"Compressed Folder";
+    AddSendToItem(zipstr);
     
     /* Insert "Send To" menu */
     MENUITEMINFOW mii;
@@ -197,53 +302,61 @@ HRESULT CSendToMenu::CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWST
 
 HRESULT WINAPI CSendToMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 {
-    // return S_OK;
+    DbgPrint("This %p idFirst %u idLast %u idCmd %u\n", this, m_idCmdFirst, m_idCmdLast, m_idCmdFirst + LOWORD(lpici->lpVerb));
+    
+
+    // LPCSTR spath = "C:\\Documents and Settings\\Administrator\\Desktop\\linky.lnk";
+    // LPCWSTR comment = L"no comment";
+    // return CreateLink(path, spath, comment);
+
+    if (!m_pdtobj)
+    {
+        ERR("m_pdtobj is NULL\n");
+        return E_INVALIDARG;
+    }
 
     HRESULT hr;
-    DbgPrint("here\n");
-    LPCSTR spath = "C:\\Documents and Settings\\Administrator\\Desktop\\linky.lnk";
-    LPCWSTR comment = L"no comment";
-    hr = CreateLink(path, spath, comment);
-    return hr;
+    DbgPrint("Got m_pdtobj\n");
+    hr = S_OK;
+    LPITEMIDLIST pidlItem = NULL;
+    IDropTarget *pdrop;
+    
+    hr = SHGetUIObjectFromFullPIDL(pidlItem, lpici->hwnd, IID_IDropTarget, (LPVOID*)&pdrop);
+    //hr = psf->GetUIObjectOf(lpici->hwnd, 1, (LPCITEMIDLIST *)&pidlItem, IID_IDropTarget, 0, (void**)&pdrop);
+    if (FAILED(hr))
+    {
+        ERR("SHGetUIObjectFromFullPIDL failed\n");
+        hr = E_FAIL;
+    }
+    else
+    {
+        DbgPrint("SHGetUIObjectFromFullPIDL success\n");
+        DWORD grfKeyState;
 
-    // if (m_pdtobj)
-    // {
-    //     DbgPrint("Got m_pdtobj\n");
-    //     hr = S_OK;
-    //     LPITEMIDLIST pidlItem = NULL;
-    //     IDropTarget *pdrop;
+        if (GetAsyncKeyState(VK_SHIFT) < 0)         // move
+            grfKeyState = MK_SHIFT | MK_LBUTTON;
+        else if (GetAsyncKeyState(VK_CONTROL) < 0)  // copy
+            grfKeyState = MK_CONTROL | MK_LBUTTON;
+        else if (GetAsyncKeyState(VK_MENU) < 0)     // shortcut
+            grfKeyState = MK_ALT | MK_LBUTTON;
+        else
+            grfKeyState = MK_LBUTTON;
+
+        DbgPrint("call simdrop\n");
+        hr = SHSimulateDrop(pdrop, m_pdtobj, grfKeyState, NULL, NULL);
+        DbgPrint("done simdrop\n");
+        if (hr == S_FALSE) 
+        {
+            // FIXME: Use ShellMessageBoxW
+            ERR("SHSimulateDrop failed\n");
+            hr == E_FAIL;
+        }
+            
+        pdrop->Release();
+        ILFree(pidlItem);
+    }
         
-    //     hr = SHGetUIObjectFromFullPIDL(pidlItem, lpici->hwnd, IID_IDropTarget, (LPVOID*)&pdrop);
-    //     DbgPrint("SHGetUIObjectFromFullPIDL done\n");
-    //     //hr = psf->GetUIObjectOf(lpici->hwnd, 1, (LPCITEMIDLIST *)&pidlItem, IID_IDropTarget, 0, (void**)&pdrop);
-    //     if (SUCCEEDED(hr))
-    //     {
-    //         DbgPrint("success\n");
-    //         DWORD grfKeyState;
-
-    //         if (GetAsyncKeyState(VK_SHIFT) < 0)         // move
-    //             grfKeyState = MK_SHIFT | MK_LBUTTON;
-    //         else if (GetAsyncKeyState(VK_CONTROL) < 0)  // copy
-    //             grfKeyState = MK_CONTROL | MK_LBUTTON;
-    //         else if (GetAsyncKeyState(VK_MENU) < 0)     // shortcut
-    //             grfKeyState = MK_ALT | MK_LBUTTON;
-    //         else
-    //             grfKeyState = MK_LBUTTON;
-    //         DbgPrint("call simdrop\n");
-    //         hr = SHSimulateDrop(pdrop, m_pdtobj, grfKeyState, NULL, NULL);
-    //         DbgPrint("done simdrop\n");
-    //         if (hr == S_FALSE) // FIXME: Use ShellMessageBoxW
-    //             ERR("SHSimulateDrop failed\n");
-                
-    //         pdrop->Release();
-    //         ILFree(pidlItem);
-    //     }
-    //     else
-    //         hr = E_FAIL;
-    // }
-    // else
-    //     hr = E_INVALIDARG;
-    // return hr;
+    return hr;
 }
 
 HRESULT WINAPI
@@ -273,7 +386,14 @@ CSendToMenu::Initialize(LPCITEMIDLIST pidlFolder,
                         IDataObject *pdtobj,
                         HKEY hkeyProgID)
 {
-    if (pdtobj == nullptr) { return E_INVALIDARG; }
+    m_tgtList = new CSendToList();
+    if(!m_tgtList->Load())
+    {
+        ERR("No targets\n");
+        return E_FAIL;
+    }
+
+    if (pdtobj == NULL) return E_INVALIDARG;
 
     // Get information on currently selected items
     FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
@@ -301,7 +421,8 @@ CSendToMenu::Initialize(LPCITEMIDLIST pidlFolder,
         
         DbgPrint("Path: %S\n", path);
         DWORD attrs = GetFileAttributes(path);
-
+        DbgPrint("HACK: Set IDataObject\n");
+        m_pdtobj = pdtobj;
         // Skip if there's an error
         if (attrs == INVALID_FILE_ATTRIBUTES)
         {
@@ -314,7 +435,7 @@ CSendToMenu::Initialize(LPCITEMIDLIST pidlFolder,
             continue;
         }
     }
-
+    
     GlobalUnlock(stm.hGlobal);
     GlobalFree(stm.hGlobal);
     return S_OK;
@@ -322,7 +443,7 @@ CSendToMenu::Initialize(LPCITEMIDLIST pidlFolder,
 
 HRESULT SHGetUIObjectFromFullPIDL(LPCITEMIDLIST pidl, HWND hwnd, REFIID riid, void **ppv)
 {
-    DbgPrint("here\n");
+    DbgPrint("Enter SHGetUIObjectFromFullPIDL\n");
     LPCITEMIDLIST pidlChild;
     IShellFolder* psf;
     *ppv = NULL;
@@ -332,8 +453,12 @@ HRESULT SHGetUIObjectFromFullPIDL(LPCITEMIDLIST pidl, HWND hwnd, REFIID riid, vo
     {
         DbgPrint("here\n");
         hr = psf->GetUIObjectOf(hwnd, 1, &pidlChild, riid, NULL, ppv);
+        if(FAILED(hr))
+        {
+            ERR("GetUIObjectOf failed with: 0x%08x\n", hr);
+        }
         psf->Release();
     }
-    DbgPrint("here\n");
+    DbgPrint("Leave SHGetUIObjectFromFullPIDL\n");
     return hr;
 }

@@ -23,6 +23,7 @@
 #ifndef _SHE_SENDTOMENU_H_
 #define _SHE_SENDTOMENU_H_
 
+class CSendToList;
 
 class CSendToMenu :
     public CComCoClass<CSendToMenu, &CLSID_SendToMenu>,
@@ -32,9 +33,9 @@ class CSendToMenu :
 {
     private:
         UINT m_idCmdFirst, m_idCmdLast;
-        WCHAR m_wszPath[MAX_PATH];
         HMENU m_hSubMenu;
         IDataObject * m_pdtobj;
+        CSendToList * m_tgtList;
         VOID AddSendToItem(LPCWSTR pwszName);
         HBITMAP IconToBitmap(HICON hIcon);
         HRESULT CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc);
