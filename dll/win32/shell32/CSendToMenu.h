@@ -39,7 +39,7 @@ class CSendToMenu :
         WCHAR m_wszPath[MAX_PATH];
         VOID AddSendToItem(LPCWSTR pwszName);
         HBITMAP IconToBitmap(HICON hIcon);
-        HRESULT CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc);
+        // HRESULT CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc);
 
     public:
         CSendToMenu();
