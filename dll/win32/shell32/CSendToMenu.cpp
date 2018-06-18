@@ -143,7 +143,10 @@ CSendToList::SSendTgt *CSendToList::AddDropTarget(LPCWSTR pwszFilename)
     return pTgt;
 }
 
-CSendToMenu::CSendToMenu() : m_idCmdFirst(0), m_idCmdLast(0), m_pdtobj(NULL), m_tgtList(NULL) {}
+CSendToMenu::CSendToMenu() : m_idCmdFirst(0), m_idCmdLast(0), m_pdtobj(NULL),
+                             m_tgtList(NULL), m_filePaths(NULL), m_pathCount(0)
+{
+}
 
 CSendToMenu::~CSendToMenu()
 {
@@ -377,89 +380,11 @@ HRESULT WINAPI CSendToMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
         ILFree(pidlItem);
     }
 
-    // hr = SHILCreateFromPathW(m_wszPath, &pidlItem, NULL);
-    // if (FAILED(hr))
-    // {
-    //     ERR("SHILCreateFromPathW failed\n");
-    //     return E_FAIL;
-    // }
-    
-    // hr = SHGetUIObjectFromFullPIDL(pidlItem, lpici->hwnd, IID_IDataObject, (LPVOID*)&pdtobj);
-    // CComPtr<IDropTarget> pdt;
-    
-    // if (SUCCEEDED(hr))
-    // {
-    //     DWORD grfKeyState;
-    //     if (GetAsyncKeyState(VK_SHIFT) < 0)         // move
-    //         grfKeyState = MK_SHIFT | MK_LBUTTON;
-    //     else if (GetAsyncKeyState(VK_CONTROL) < 0)  // copy
-    //         grfKeyState = MK_CONTROL | MK_LBUTTON;
-    //     else if (GetAsyncKeyState(VK_MENU) < 0)     // shortcut
-    //         grfKeyState = MK_ALT | MK_LBUTTON;
-    //     else
-    //         grfKeyState = MK_LBUTTON;
-
-    //     DWORD dwEffect = DROPEFFECT_COPY;
-        
-    //     DbgPrint("HACK: Sending to desktop\n");
-    //     //hr = CRecyclerDropTarget_CreateInstance(IID_PPV_ARG(IDropTarget, &pdt));
-    //     hr = CDesktopDropTarget_CreateInstance(IID_PPV_ARG(IDropTarget, &pdt));
-    //     if (FAILED_UNEXPECTEDLY(hr))
-    //     {
-    //         ERR("CDesktopDropTarget_CreateInstance failed\n");
-    //         hr = E_FAIL;
-    //     } 
-    //     else
-    //     {
-    //         POINTL pt = { 0, 0 };
-    //         hr = SHSimulateDrop(pdt, pdtobj, grfKeyState, &pt, &dwEffect);
-    //         if (FAILED(hr)) 
-    //         {
-    //             ERR("SHSimulateDrop failed\n");
-    //             hr = E_FAIL;
-    //         }
-    //     }
-
-    //     pdt->Release();
-    // }
-    // else
-    // {
-    //     ERR("SHGetUIObjectFromFullPIDL failed\n");
-    // }
-    // pdtobj->Release();
-    // ILFree(pidlItem);
     return hr;
-    // //hr = psf->GetUIObjectOf(lpici->hwnd, 1, (LPCITEMIDLIST *)&pidlItem, IID_IDropTarget, 0, (void**)&pdrop);
-    // if (FAILED(hr))
-    // {
-    //     ERR("SHGetUIObjectFromFullPIDL failed\n");
-    //     return E_FAIL;
-    // }
-
-    // DbgPrint("SHGetUIObjectFromFullPIDL success\n");
-    // DWORD grfKeyState;
-
-
-
-    // DbgPrint("call simdrop\n");
-    // hr = SHSimulateDrop(pdrop, m_pdtobj, grfKeyState, NULL, NULL);
-    // DbgPrint("done simdrop\n");
-    // if (hr == S_FALSE) 
-    // {
-    //     // FIXME: Use ShellMessageBoxW
-    //     ERR("SHSimulateDrop failed\n");
-    //     hr = E_FAIL;
-    // }
-        
-    // pdrop->Release();
-    // ILFree(pidlItem);
-    
-    // return hr;
 }
 
 HRESULT WINAPI
-CSendToMenu::GetCommandString(UINT_PTR idCmd, UINT uType,
-                                UINT* pwReserved, LPSTR pszName, UINT cchMax )
+CSendToMenu::GetCommandString(UINT_PTR idCmd, UINT uType, UINT* pwReserved, LPSTR pszName, UINT cchMax)
 {
     FIXME("%p %lu %u %p %p %u\n", this,
           idCmd, uType, pwReserved, pszName, cchMax );
@@ -521,19 +446,11 @@ CSendToMenu::Initialize(LPCITEMIDLIST pidlFolder,
         
         DbgPrint("Path: %S\n", path);
         DWORD attrs = GetFileAttributes(path);
-        //DbgPrint("HACK: Set IDataObject\n");
-        //m_pdtobj = pdtobj;
 
         // Skip if there's an error
         if (attrs == INVALID_FILE_ATTRIBUTES)
         {
             ERR("GetFileAttributes() failed! Last error: 0x%08x\n", GetLastError());
-            continue;
-        }
-
-        // FIXME: Only skip . and ..
-        // Skip directories
-        if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
             continue;
         }
 
