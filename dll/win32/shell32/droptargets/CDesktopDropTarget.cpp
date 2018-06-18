@@ -29,14 +29,13 @@ class CDesktopDropTarget :
     public IDropTarget
 {
     private:
-        BOOL fAcceptFmt;       /* flag for pending Drop */
         UINT cfShellIDList;
 
     public:
 
         CDesktopDropTarget()
         {
-            fAcceptFmt = FALSE;
+            FIXME("This should be moved to sendmail.dll once it's created\n");
             cfShellIDList = RegisterClipboardFormatW(CFSTR_SHELLIDLIST);
         }
 
@@ -57,7 +56,7 @@ class CDesktopDropTarget :
         }
 
         // FIXME: Use IShellLink_ConstructFromPath
-        HRESULT CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc)
+        HRESULT CreateLink(LPCWSTR lpszPathObj, LPCWSTR lpszPathLink, LPCWSTR lpszDesc)
         { 
             HRESULT hres; 
             IShellLink* psl; 
@@ -75,11 +74,7 @@ class CDesktopDropTarget :
 
                 if (SUCCEEDED(hres)) 
                 { 
-                    WCHAR wsz[MAX_PATH]; 
-                    // Ensure that the string is Unicode
-                    MultiByteToWideChar(CP_ACP, 0, lpszPathLink, -1, wsz, MAX_PATH); 
-
-                    hres = ppf->Save(wsz, TRUE); 
+                    hres = ppf->Save(lpszPathLink, TRUE); 
                     ppf->Release(); 
                 } 
                 psl->Release(); 
@@ -90,7 +85,7 @@ class CDesktopDropTarget :
         HRESULT WINAPI Drop(IDataObject *pDataObject,
                             DWORD dwKeyState, POINTL pt, DWORD *pdwEffect)
         {
-            DbgPrint("Object sent to desktop\n");
+            TRACE("Object sent to desktop\n");
             if (pDataObject == NULL) return E_INVALIDARG;
 
             FORMATETC fmt = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
@@ -98,29 +93,18 @@ class CDesktopDropTarget :
             HRESULT hr = pDataObject->GetData(&fmt, &stm);
             if (FAILED(hr)) return hr;
 
-            // LPDROPFILES lpdf = (LPDROPFILES) GlobalLock(stm.hGlobal);
-            // if (!lpdf)
-            // {
-            //     ERR("Error locking global\n");
-            //     return E_FAIL;
-            // }
-
-            // LPWSTR obj_path = (LPWSTR) (((byte*) lpdf) + lpdf->pFiles);
-            // DbgPrint("Path: %S\n", obj_path);
-            // LPCSTR link_path = "C:\\Documents and Settings\\Administrator\\Desktop\\linky.lnk";
-            // LPCWSTR comment = L"no comment";
-            // hr = CreateLink(obj_path, link_path, comment);
-
             HDROP hDrop = (HDROP)GlobalLock(stm.hGlobal);
             if (hDrop == NULL) return E_INVALIDARG;
 
-            unsigned int count = DragQueryFile(hDrop, (unsigned int)-1, nullptr, 0);
-            DbgPrint("Found %d files in HDROP\n", count);
-            for (unsigned int i = 0; i < count; i++) 
+            UINT count = DragQueryFile(hDrop, (UINT)-1, nullptr, 0);
+            DbgPrint("Found %d file(s) in HDROP\n", count);
+            for (UINT i = 0; i < count; i++)
             {
                 WCHAR obj_path[MAX_PATH];
+                ZeroMemory(obj_path, MAX_PATH);
+
                 // Skip if there's an error
-                int chars = DragQueryFile(hDrop, i, obj_path, MAX_PATH);
+                UINT chars = DragQueryFile(hDrop, i, obj_path, MAX_PATH);
                 if (!chars)
                 {
                     ERR("DragQueryFile() failed! Last error: 0x%08x\n", GetLastError());
@@ -143,9 +127,37 @@ class CDesktopDropTarget :
                 if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
                     continue;
                 }
-                LPCSTR link_path = "C:\\Documents and Settings\\Administrator\\Desktop\\linky.lnk";
-                LPCWSTR comment = L"no comment";
-                hr = CreateLink(obj_path, link_path, comment);
+                LPWSTR name = PathFindFileNameW(obj_path);
+                DbgPrint("File name: %S\n", name);
+
+                WCHAR link_path[MAX_PATH];
+                hr = SHGetFolderPath(HWND_DESKTOP, CSIDL_DESKTOP, NULL, SHGFP_TYPE_CURRENT, link_path);
+                if(hr != S_OK)
+                {
+                    ERR("SHGetSpecialFolderPath failed: 0x%08x\n", hr);
+                    return E_FAIL;
+                }
+
+                if (FAILED(StringCchCatW(link_path, MAX_PATH, L"\\Shortcut to ")))
+                {
+                    ERR("StringCchCatW failed\n");
+                    return E_FAIL;
+                }
+
+                if (FAILED(StringCchCatW(link_path, MAX_PATH, name)))
+                {
+                    ERR("StringCchCatW failed\n");
+                    return E_FAIL;
+                }
+
+                if (FAILED(StringCchCatW(link_path, MAX_PATH, L".lnk")))
+                {
+                    ERR("StringCchCatW failed\n");
+                    return E_FAIL;
+                }
+
+                DbgPrint("Shortcut path: %S\n", link_path);
+                hr = CreateLink(obj_path, link_path, L"");
             }
 
             GlobalUnlock(stm.hGlobal);

@@ -36,10 +36,10 @@ class CSendToMenu :
         HMENU m_hSubMenu;
         IDataObject * m_pdtobj;
         CSendToList * m_tgtList;
-        WCHAR m_wszPath[MAX_PATH];
+        WCHAR ** m_filePaths;
+        UINT m_pathCount;
         VOID AddSendToItem(LPCWSTR pwszName);
         HBITMAP IconToBitmap(HICON hIcon);
-        // HRESULT CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc);
 
     public:
         CSendToMenu();

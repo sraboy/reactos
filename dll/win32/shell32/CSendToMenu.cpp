@@ -177,6 +177,15 @@ CSendToMenu::~CSendToMenu()
     if (m_tgtList) {
         delete m_tgtList;
     }
+
+    if(m_filePaths)
+    {
+        for(UINT i = 0; i < m_pathCount; i++)
+        {
+            HeapFree(GetProcessHeap(), 0, m_filePaths[i]);
+        }
+        HeapFree(GetProcessHeap(), 0, m_filePaths);
+    }
 }
 
 VOID CSendToMenu::AddSendToItem(LPCWSTR pwszName)
@@ -307,59 +316,118 @@ extern HRESULT CDesktopDropTarget_CreateInstance(REFIID riid, LPVOID * ppvOut);
 HRESULT WINAPI CSendToMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 {
     DbgPrint("This %p idFirst %u idLast %u idCmd %u\n", this, m_idCmdFirst, m_idCmdLast, m_idCmdFirst + LOWORD(lpici->lpVerb));
-    IDataObject *pdtobj = NULL;
-    LPITEMIDLIST pidlItem = NULL;
     
-    HRESULT hr = SHILCreateFromPathW(m_wszPath, &pidlItem, NULL);
-    if (FAILED(hr))
-    {
-        ERR("SHILCreateFromPathW failed\n");
-        return E_FAIL;
-    }
-    
-    hr = SHGetUIObjectFromFullPIDL(pidlItem, lpici->hwnd, IID_IDataObject, (LPVOID*)&pdtobj);
-    CComPtr<IDropTarget> pdt;
-    
-    if (SUCCEEDED(hr))
-    {
-        DWORD grfKeyState;
-        if (GetAsyncKeyState(VK_SHIFT) < 0)         // move
-            grfKeyState = MK_SHIFT | MK_LBUTTON;
-        else if (GetAsyncKeyState(VK_CONTROL) < 0)  // copy
-            grfKeyState = MK_CONTROL | MK_LBUTTON;
-        else if (GetAsyncKeyState(VK_MENU) < 0)     // shortcut
-            grfKeyState = MK_ALT | MK_LBUTTON;
-        else
-            grfKeyState = MK_LBUTTON;
+    HRESULT hr = E_FAIL;
 
-        DWORD dwEffect = DROPEFFECT_COPY;
-        POINTL pt = { 0, 0 };
-        DbgPrint("HACK: Sending to desktop\n");
-        //hr = CRecyclerDropTarget_CreateInstance(IID_PPV_ARG(IDropTarget, &pdt));
-        hr = CDesktopDropTarget_CreateInstance(IID_PPV_ARG(IDropTarget, &pdt));
-        if (FAILED_UNEXPECTEDLY(hr))
+    for(UINT i = 0; i < m_pathCount; i++)
+    {
+        IDataObject *pdtobj = NULL;
+        LPITEMIDLIST pidlItem = NULL;
+
+        hr = SHILCreateFromPathW(m_filePaths[i], &pidlItem, NULL);
+        if (FAILED(hr))
         {
-            ERR("CDesktopDropTarget_CreateInstance failed\n");
-            hr = E_FAIL;
-        } 
-        else
-        {
-            hr = SHSimulateDrop(pdt, pdtobj, grfKeyState, &pt, &dwEffect);
-            if (FAILED(hr)) 
-            {
-                ERR("SHSimulateDrop failed\n");
-                hr = E_FAIL;
-            }
+            ERR("SHILCreateFromPathW failed\n");
+            return E_FAIL;
         }
+        
+        hr = SHGetUIObjectFromFullPIDL(pidlItem, NULL, IID_IDataObject, (LPVOID*)&pdtobj);
+        CComPtr<IDropTarget> pdt;
+        
+        if (SUCCEEDED(hr))
+        {
+            DWORD grfKeyState;
+            if (GetAsyncKeyState(VK_SHIFT) < 0)         // move
+                grfKeyState = MK_SHIFT | MK_LBUTTON;
+            else if (GetAsyncKeyState(VK_CONTROL) < 0)  // copy
+                grfKeyState = MK_CONTROL | MK_LBUTTON;
+            else if (GetAsyncKeyState(VK_MENU) < 0)     // shortcut
+                grfKeyState = MK_ALT | MK_LBUTTON;
+            else
+                grfKeyState = MK_LBUTTON;
 
-        pdt->Release();
+            DWORD dwEffect = DROPEFFECT_COPY;
+            
+            DbgPrint("HACK: Sending to desktop\n");
+            //hr = CRecyclerDropTarget_CreateInstance(IID_PPV_ARG(IDropTarget, &pdt));
+            hr = CDesktopDropTarget_CreateInstance(IID_PPV_ARG(IDropTarget, &pdt));
+            if (FAILED_UNEXPECTEDLY(hr))
+            {
+                ERR("CDesktopDropTarget_CreateInstance failed\n");
+                hr = E_FAIL;
+            } 
+            else
+            {
+                POINTL pt = { 0, 0 };
+                hr = SHSimulateDrop(pdt, pdtobj, grfKeyState, &pt, &dwEffect);
+                if (FAILED(hr)) 
+                {
+                    ERR("SHSimulateDrop failed\n");
+                    hr = E_FAIL;
+                }
+            }
+
+            pdt->Release();
+        }
+        else
+        {
+            ERR("SHGetUIObjectFromFullPIDL failed\n");
+        }
+        pdtobj->Release();
+        ILFree(pidlItem);
     }
-    else
-    {
-        ERR("SHGetUIObjectFromFullPIDL failed\n");
-    }
-    pdtobj->Release();
-    ILFree(pidlItem);
+
+    // hr = SHILCreateFromPathW(m_wszPath, &pidlItem, NULL);
+    // if (FAILED(hr))
+    // {
+    //     ERR("SHILCreateFromPathW failed\n");
+    //     return E_FAIL;
+    // }
+    
+    // hr = SHGetUIObjectFromFullPIDL(pidlItem, lpici->hwnd, IID_IDataObject, (LPVOID*)&pdtobj);
+    // CComPtr<IDropTarget> pdt;
+    
+    // if (SUCCEEDED(hr))
+    // {
+    //     DWORD grfKeyState;
+    //     if (GetAsyncKeyState(VK_SHIFT) < 0)         // move
+    //         grfKeyState = MK_SHIFT | MK_LBUTTON;
+    //     else if (GetAsyncKeyState(VK_CONTROL) < 0)  // copy
+    //         grfKeyState = MK_CONTROL | MK_LBUTTON;
+    //     else if (GetAsyncKeyState(VK_MENU) < 0)     // shortcut
+    //         grfKeyState = MK_ALT | MK_LBUTTON;
+    //     else
+    //         grfKeyState = MK_LBUTTON;
+
+    //     DWORD dwEffect = DROPEFFECT_COPY;
+        
+    //     DbgPrint("HACK: Sending to desktop\n");
+    //     //hr = CRecyclerDropTarget_CreateInstance(IID_PPV_ARG(IDropTarget, &pdt));
+    //     hr = CDesktopDropTarget_CreateInstance(IID_PPV_ARG(IDropTarget, &pdt));
+    //     if (FAILED_UNEXPECTEDLY(hr))
+    //     {
+    //         ERR("CDesktopDropTarget_CreateInstance failed\n");
+    //         hr = E_FAIL;
+    //     } 
+    //     else
+    //     {
+    //         POINTL pt = { 0, 0 };
+    //         hr = SHSimulateDrop(pdt, pdtobj, grfKeyState, &pt, &dwEffect);
+    //         if (FAILED(hr)) 
+    //         {
+    //             ERR("SHSimulateDrop failed\n");
+    //             hr = E_FAIL;
+    //         }
+    //     }
+
+    //     pdt->Release();
+    // }
+    // else
+    // {
+    //     ERR("SHGetUIObjectFromFullPIDL failed\n");
+    // }
+    // pdtobj->Release();
+    // ILFree(pidlItem);
     return hr;
     // //hr = psf->GetUIObjectOf(lpici->hwnd, 1, (LPCITEMIDLIST *)&pidlItem, IID_IDropTarget, 0, (void**)&pdrop);
     // if (FAILED(hr))
@@ -435,22 +503,27 @@ CSendToMenu::Initialize(LPCITEMIDLIST pidlFolder,
         GlobalFree(stm.hGlobal);
         return S_OK;
     }
+    
+    m_pathCount = 0;
+    m_filePaths = (WCHAR**)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, count * sizeof(WCHAR*));
 
     // Get all selected files' names
-    //WCHAR path[MAX_PATH]; //TODO: Handle longer paths in Win10 v1607+
-    for (unsigned int i = 0; i < count; i++) 
+    for (UINT i = 0; i < count; i++) 
     {
+        WCHAR path[MAX_PATH]; // FIXME: Handle longer paths in Win10 v1607+
+        ZeroMemory(path, MAX_PATH);
         // Skip if there's an error
-        if (!DragQueryFile(hDrop, i, m_wszPath, MAX_PATH))
+        if (!DragQueryFile(hDrop, i, path, MAX_PATH))
         {
             ERR("DragQueryFile() failed! Last error: 0x%08x\n", GetLastError());
             continue;
         }
         
-        DbgPrint("Path: %S\n", m_wszPath);
-        DWORD attrs = GetFileAttributes(m_wszPath);
+        DbgPrint("Path: %S\n", path);
+        DWORD attrs = GetFileAttributes(path);
         //DbgPrint("HACK: Set IDataObject\n");
         //m_pdtobj = pdtobj;
+
         // Skip if there's an error
         if (attrs == INVALID_FILE_ATTRIBUTES)
         {
@@ -458,10 +531,17 @@ CSendToMenu::Initialize(LPCITEMIDLIST pidlFolder,
             continue;
         }
 
+        // FIXME: Only skip . and ..
         // Skip directories
         if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
             continue;
         }
+
+        m_filePaths[i] = (WCHAR*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH * sizeof(WCHAR));
+        DbgPrint("Copying path: %S\n", path);
+        wcscpy(m_filePaths[i], path);
+        m_pathCount++;
+        DbgPrint("Copied path: %S\n", m_filePaths[i]);
     }
     
     GlobalUnlock(stm.hGlobal);
