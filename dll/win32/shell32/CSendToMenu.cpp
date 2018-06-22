@@ -392,14 +392,15 @@ CSendToMenu::GetCommandString(UINT_PTR idCmd, UINT uType, UINT* pwReserved, LPST
     return E_NOTIMPL;
 }
 
-HRESULT WINAPI CSendToMenu::HandleMenuMsg(
-    UINT uMsg,
-    WPARAM wParam,
-    LPARAM lParam)
+HRESULT WINAPI CSendToMenu::HandleMenuMsg2(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *plResult)
 {
-
     DbgPrint("This %p uMsg %x\n", this, uMsg);
     return E_NOTIMPL;
+}
+
+HRESULT WINAPI CSendToMenu::HandleMenuMsg(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    return HandleMenuMsg2(uMsg, wParam, lParam, NULL);
 }
 
 HRESULT WINAPI

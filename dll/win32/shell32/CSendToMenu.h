@@ -28,7 +28,7 @@ class CSendToList;
 class CSendToMenu :
     public CComCoClass<CSendToMenu, &CLSID_SendToMenu>,
     public CComObjectRootEx<CComMultiThreadModelNoCS>,
-    public IContextMenu,
+    public IContextMenu3,
     public IShellExtInit
 {
     private:
@@ -52,6 +52,8 @@ class CSendToMenu :
 
         // IContextMenu2
         virtual HRESULT WINAPI HandleMenuMsg(UINT uMsg, WPARAM wParam, LPARAM lParam);
+        // IContextMenu3
+        virtual HRESULT WINAPI HandleMenuMsg2(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *plResult);
 
         // IShellExtInit
         virtual HRESULT STDMETHODCALLTYPE Initialize(LPCITEMIDLIST pidlFolder, IDataObject *pdtobj, HKEY hkeyProgID);
