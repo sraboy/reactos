@@ -64,8 +64,9 @@ class CSendToMenu :
         DECLARE_PROTECT_FINAL_CONSTRUCT()
 
         BEGIN_COM_MAP(CSendToMenu)
-            //COM_INTERFACE_ENTRY_IID(IID_IContextMenu2, IContextMenu2)
             COM_INTERFACE_ENTRY_IID(IID_IContextMenu, IContextMenu)
+            COM_INTERFACE_ENTRY_IID(IID_IContextMenu2, IContextMenu2)
+            COM_INTERFACE_ENTRY_IID(IID_IContextMenu3, IContextMenu3)
             COM_INTERFACE_ENTRY_IID(IID_IShellExtInit, IShellExtInit)
         END_COM_MAP()
 };
