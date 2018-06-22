@@ -146,6 +146,40 @@ CSendToList::SSendTgt *CSendToList::AddDropTarget(LPCWSTR pwszFilename)
 // HACK: drop target
 extern HRESULT CDesktopDropTarget_CreateInstance(REFIID riid, LPVOID * ppvOut);
 
+// Registry notes
+// HKEY_CLASSES_ROOT\CLSID\{7BA4C740-9E81-11CF-99D3-00AA004AE837}
+// HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{7BA4C740-9E81-11CF-99D3-00AA004AE837}
+// HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\{7BA4C740-9E81-11CF-99D3-00AA004AE837}
+// HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Wow6432Node\CLSID\{7BA4C740-9E81-11CF-99D3-00AA004AE837}
+// HKEY_USERS\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders **(app compat?)
+// HKEY_USERS\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders
+
+// HKEY_CLASSES_ROOT\AllFilesystemObjects\shellex\ContextMenuHandlers\Send To
+// HKEY_CLASSES_ROOT\Wow6432Node\AllFilesystemObjects\shellex\ContextMenuHandlers\Send To
+// HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AllFilesystemObjects\shellex\ContextMenuHandlers\Send To
+// HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Wow6432Node\AllFilesystemObjects\shellex\ContextMenuHandlers\Send To
+
+// HKEY_CLASSES_ROOT\.DeskLink = CLSID\{9E56BE61-C50F-11CF-9A2C-00A0C90A90CE}
+// HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.DeskLink
+// HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.DeskLink\OpenWithList
+// HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.DeskLink\OpenWithProgids
+// 	CLSID\{9E56BE61-C50F-11CF-9A2C-00A0C90A90CE} = (REG_NONE) 0
+// HKEY_LOCAL_MACHINE\SOFTWARE\Classes\.DeskLink
+// ...Wow6432Node...
+
+// HKEY_CLASSES_ROOT\CLSID\{9E56BE61-C50F-11CF-9A2C-00A0C90A90CE}
+// HKEY_CLASSES_ROOT\CLSID\{9E56BE61-C50F-11CF-9A2C-00A0C90A90CE}\DefaultIcon = C:\WINDOWS\explorer.exe,-103
+// HKEY_CLASSES_ROOT\CLSID\{9E56BE61-C50F-11CF-9A2C-00A0C90A90CE}\InProcServer32
+// HKEY_CLASSES_ROOT\CLSID\{9E56BE61-C50F-11CF-9A2C-00A0C90A90CE}\shellex\DropHandler = {9E56BE61-C50F-11CF-9A2C-00A0C90A90CE}
+
+// __ as above, in HKLM __
+// HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\{9E56BE61-C50F-11CF-9A2C-00A0C90A90CE}\shellex\DropHandler
+
+// HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved
+// 	{9E56BE61-C50F-11CF-9A2C-00A0C90A90CE} = Sendmail service
+
+
+
 CSendToMenu::CSendToMenu() : m_idCmdFirst(0), m_idCmdLast(0), m_pdtobj(NULL),
                              m_tgtList(NULL), m_filePaths(NULL), m_pathCount(0)
 {
