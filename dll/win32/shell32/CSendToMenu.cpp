@@ -143,6 +143,9 @@ CSendToList::SSendTgt *CSendToList::AddDropTarget(LPCWSTR pwszFilename)
     return pTgt;
 }
 
+// HACK: drop target
+extern HRESULT CDesktopDropTarget_CreateInstance(REFIID riid, LPVOID * ppvOut);
+
 CSendToMenu::CSendToMenu() : m_idCmdFirst(0), m_idCmdLast(0), m_pdtobj(NULL),
                              m_tgtList(NULL), m_filePaths(NULL), m_pathCount(0)
 {
@@ -242,15 +245,8 @@ HBITMAP CSendToMenu::IconToBitmap(HICON hIcon)
     return hbm;
 }
 
-HRESULT WINAPI CSendToMenu::QueryContextMenu(
-    HMENU hMenu,
-    UINT indexMenu,
-    UINT idCmdFirst,
-    UINT idCmdLast,
-    UINT uFlags)
+HRESULT WINAPI CSendToMenu::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags)
 {
-    DbgPrint("QueryContextMenu\n");
-    // FIXME: Check SendTo folder
     DbgPrint("hMenu %p indexMenu %u idFirst %u idLast %u uFlags %u\n", hMenu, indexMenu, idCmdFirst, idCmdLast, uFlags);
 
     WCHAR wszName[100];
@@ -302,19 +298,6 @@ HRESULT WINAPI CSendToMenu::QueryContextMenu(
 
     return MAKE_HRESULT(SEVERITY_SUCCESS, 0, m_idCmdLast - m_idCmdFirst + 1);
 }
-
-
-
-// CLSID CLSID_ZipFolder = { 0x888DCA60, 0xFC0A, 0x11CF, { 0x8F, 0x0F, 0x00, 0xC0, 0x4F, 0xD7, 0xD0, 0x62 } };
-
-// #ifdef __cplusplus
-// #   define IID_PPV_ARG(Itype, ppType) IID_##Itype, reinterpret_cast<void**>((static_cast<Itype**>(ppType)))
-// #   define IID_NULL_PPV_ARG(Itype, ppType) IID_##Itype, NULL, reinterpret_cast<void**>((static_cast<Itype**>(ppType)))
-// #else
-// #   define IID_PPV_ARG(Itype, ppType) IID_##Itype, (void**)(ppType)
-// #   define IID_NULL_PPV_ARG(Itype, ppType) IID_##Itype, NULL, (void**)(ppType)
-// #endif
-extern HRESULT CDesktopDropTarget_CreateInstance(REFIID riid, LPVOID * ppvOut);
 
 HRESULT WINAPI CSendToMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 {
