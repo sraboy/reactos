@@ -3,7 +3,7 @@
  *
  * Copyright 2018 Steven Lavoie <steven.lavoiejr@gmail.com>
  *
- * This code may be distributed under either the MIT 
+ * This code may be distributed under the terms of the GPL license.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
